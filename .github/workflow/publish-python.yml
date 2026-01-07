@@ -1,0 +1,81 @@
+# name: Publish Python SDK
+
+# on:
+#   push:
+#     tags:
+#       - 'py-v*'  # Triggers on tags like py-v0.1.0, py-v1.0.0
+
+# jobs:
+#   test:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v4
+
+#       - name: Set up Python
+#         uses: actions/setup-python@v5
+#         with:
+#           python-version: '3.11'
+
+#       - name: Install dependencies
+#         working-directory: buckerio-py
+#         run: pip install -e ".[dev]"
+
+#       - name: Run unit tests
+#         working-directory: buckerio-py
+#         run: pytest tests/test_auth.py tests/test_client.py -v
+
+#   publish:
+#     needs: test
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v4
+
+#       - name: Set up Python
+#         uses: actions/setup-python@v5
+#         with:
+#           python-version: '3.11'
+
+#       - name: Install build tools
+#         run: pip install build twine
+
+#       - name: Build package
+#         working-directory: buckerio-py
+#         run: python -m build
+
+#       - name: Check package
+#         working-directory: buckerio-py
+#         run: twine check dist/*
+
+#       - name: Publish to PyPI
+#         working-directory: buckerio-py
+#         env:
+#           TWINE_USERNAME: __token__
+#           TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+#         run: twine upload dist/*
+
+#       - name: Get version from tag
+#         id: version
+#         run: echo "version=${GITHUB_REF#refs/tags/py-v}" >> $GITHUB_OUTPUT
+
+#       - name: Create GitHub Release
+#         uses: softprops/action-gh-release@v1
+#         with:
+#           name: Python SDK v${{ steps.version.outputs.version }}
+#           files: buckerio-py/dist/*
+#           generate_release_notes: true
+#           body: |
+#             ## Python SDK v${{ steps.version.outputs.version }}
+
+#             ### Installation
+#             ```bash
+#             pip install buckerio==${{ steps.version.outputs.version }}
+#             ```
+
+#             ### Quick Start
+#             ```python
+#             from buckerio import Buckerio
+
+#             client = Buckerio(endpoint="http://localhost:9000")
+#             client.create_bucket("my-bucket")
+#             client.put_object("my-bucket", "hello.txt", b"Hello!")
+#             ```
