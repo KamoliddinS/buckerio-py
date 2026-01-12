@@ -1,5 +1,6 @@
 """Low-level S3 API calls."""
 
+from datetime import datetime
 from typing import Any, Dict, Optional, Union
 from urllib.parse import urljoin
 
@@ -287,3 +288,65 @@ class S3Api:
         """Generate presigned URL for PUT."""
         url = self._build_url(bucket, key)
         return self.auth.presign_url("PUT", url, expires_in)
+
+    def presign_get_object(
+        self,
+        bucket: str,
+        key: str,
+        expires_in: int = 604800,  # 7 days default
+        response_headers: Optional[Dict[str, str]] = None,
+        version_id: Optional[str] = None,
+        extra_query_params: Optional[Dict[str, str]] = None,
+        request_date: Optional[datetime] = None,
+    ) -> str:
+        """
+        Generate presigned URL for GET with advanced options.
+
+        Args:
+            bucket: Bucket name
+            key: Object key
+            expires_in: URL expiration in seconds (default 7 days)
+            response_headers: Override response headers in the download:
+                - content-type: Set Content-Type header
+                - content-disposition: Set Content-Disposition (e.g., "attachment; filename=...")
+                - content-encoding: Set Content-Encoding
+                - content-language: Set Content-Language
+                - cache-control: Set Cache-Control
+                - expires: Set Expires header
+            version_id: Object version ID (for versioned buckets)
+            extra_query_params: Additional query parameters
+            request_date: Custom signing date (for testing/reproducibility)
+
+        Returns:
+            Presigned URL string
+        """
+        url = self._build_url(bucket, key)
+
+        # Build query params
+        query_params: Dict[str, str] = {}
+
+        # Response header overrides (S3 standard params)
+        if response_headers:
+            header_map = {
+                "content-type": "response-content-type",
+                "content-disposition": "response-content-disposition",
+                "content-encoding": "response-content-encoding",
+                "content-language": "response-content-language",
+                "cache-control": "response-cache-control",
+                "expires": "response-expires",
+            }
+            for header_key, param_name in header_map.items():
+                if header_key in response_headers:
+                    query_params[param_name] = response_headers[header_key]
+
+        # Version ID for versioned buckets
+        if version_id:
+            query_params["versionId"] = version_id
+
+        # Extra custom params
+        if extra_query_params:
+            query_params.update(extra_query_params)
+
+        return self.auth.presign_url(
+            "GET", url, expires_in, query_params if query_params else None, request_date
+        )

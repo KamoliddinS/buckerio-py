@@ -1,6 +1,7 @@
 """Main Buckerio client implementation."""
 
 import os
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, BinaryIO, Dict, Iterator, List, Optional, Union
 
@@ -536,4 +537,66 @@ class Buckerio:
             PresignedUrlResult with URL
         """
         url = self._api.presign_put(bucket, normalize_key(key), expires_in)
+        return PresignedUrlResult(url=url, expires_in=expires_in)
+
+    def presigned_get_object(
+        self,
+        bucket_name: str,
+        object_name: str,
+        expires: timedelta = timedelta(days=7),
+        response_headers: Optional[Dict[str, str]] = None,
+        request_date: Optional[datetime] = None,
+        version_id: Optional[str] = None,
+        extra_query_params: Optional[Dict[str, str]] = None,
+    ) -> PresignedUrlResult:
+        """
+        Generate a presigned URL for downloading an object with advanced options.
+
+        This is a MinIO-compatible API that provides more control over presigned URLs
+        compared to the simpler `presign_get()` method.
+
+        Args:
+            bucket_name: Bucket name
+            object_name: Object key
+            expires: URL expiration duration (default 7 days, max 7 days for IAM users)
+            response_headers: Override response headers in the download. Supported keys:
+                - content-type: Set Content-Type header
+                - content-disposition: Set Content-Disposition (e.g., "attachment; filename=report.pdf")
+                - content-encoding: Set Content-Encoding
+                - content-language: Set Content-Language
+                - cache-control: Set Cache-Control
+                - expires: Set Expires header
+            request_date: Custom signing date (useful for testing or reproducibility)
+            version_id: Object version ID (for versioned buckets)
+            extra_query_params: Additional query parameters to include in the URL
+
+        Returns:
+            PresignedUrlResult with URL and expiration time
+
+        Example:
+            ```python
+            # Generate URL that forces download with custom filename
+            result = client.presigned_get_object(
+                "my-bucket",
+                "reports/q4-2024.pdf",
+                expires=timedelta(hours=1),
+                response_headers={
+                    "content-disposition": "attachment; filename=Q4-Report.pdf"
+                }
+            )
+            print(result.url)  # Share this URL for downloads
+            ```
+        """
+        expires_in = int(expires.total_seconds())
+
+        url = self._api.presign_get_object(
+            bucket=bucket_name,
+            key=normalize_key(object_name),
+            expires_in=expires_in,
+            response_headers=response_headers,
+            version_id=version_id,
+            extra_query_params=extra_query_params,
+            request_date=request_date,
+        )
+
         return PresignedUrlResult(url=url, expires_in=expires_in)

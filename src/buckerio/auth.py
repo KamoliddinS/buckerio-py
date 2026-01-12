@@ -160,6 +160,7 @@ class AWSV4Auth:
         url: str,
         expires_in: int = 3600,
         query_params: Optional[Dict[str, str]] = None,
+        request_date: Optional[datetime] = None,
     ) -> str:
         """
         Generate a presigned URL for an S3 operation.
@@ -169,6 +170,7 @@ class AWSV4Auth:
             url: Full URL to presign
             expires_in: URL expiration time in seconds (default 1 hour)
             query_params: Additional query parameters
+            request_date: Custom signing date (for testing/reproducibility)
 
         Returns:
             Presigned URL string
@@ -181,8 +183,8 @@ class AWSV4Auth:
         path = parsed.path or "/"
         host = parsed.netloc
 
-        # Get current time
-        now = datetime.now(timezone.utc)
+        # Use provided date or current time
+        now = request_date if request_date else datetime.now(timezone.utc)
         amz_date = now.strftime("%Y%m%dT%H%M%SZ")
         date_stamp = now.strftime("%Y%m%d")
 
